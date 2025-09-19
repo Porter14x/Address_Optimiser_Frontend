@@ -208,3 +208,7 @@ __marimo__/
 
 #environment folder
 add_front/
+
+#google sign in material
+credentials.json
+token.json
