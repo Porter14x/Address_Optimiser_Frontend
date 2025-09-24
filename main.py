@@ -2,6 +2,7 @@ import tkinter as tk
 import requests
 import dotenv
 import os
+import sheets
 from tkinter import ttk, messagebox
 from dotenv import load_dotenv
 from requests import ConnectTimeout
@@ -40,7 +41,7 @@ class ButtonRow(ttk.Frame):
         self.btn_new_table = ttk.Button(self, text="Add Round", command=self.getWindowNewTable)
         self.btn_new_table.grid(row=0, column=0)
 
-        self.btn_insert = ttk.Button(self, text="Add Address")
+        self.btn_insert = ttk.Button(self, text="Add Address", command=self.getWindowInsertAddress)
         self.btn_insert.grid(row=0, column=1)
 
         self.btn_delete = ttk.Button(self, text="Remove Address")
@@ -55,11 +56,28 @@ class ButtonRow(ttk.Frame):
         self.btn_batch_insert = ttk.Button(self, text="Insert From Sheet")
         self.btn_batch_insert.grid(row=0, column=5)
 
-        self.btn_job_sheet = ttk.Button(self, text="Optimise Job Sheet")
+        self.btn_job_sheet = ttk.Button(self, text="Optimise Job Sheet", command=self.optimiseJobSheetButton)
         self.btn_job_sheet.grid(row=0, column=6)
+
+        self.label_load = ttk.Label(self, text="Test")
+        self.label_load.grid(row=1, column=3)
     
     def getWindowNewTable(self):
         nt_win = WindowNewTable(self.class_parent)
+    
+    def getWindowInsertAddress(self):
+        inad_win = WindowInsertAddress(self.class_parent)
+    
+    def optimiseJobSheetButton(self):
+        self.label_load.config(text="Optimising Job Sheet...")
+        outcome = sheets.optimiseJobSheet()
+        if outcome:
+            self.message = messagebox.showerror(message=f"""Error code {outcome.status_code}, 
+                                                sheet not optimised\n {outcome.reason}""")
+            self.label_load.config(text=f"Error while optimising jobsheet, {outcome.status_code}")
+        else:
+           self.label_load.config(text="Job Sheet Optimised") 
+
 
 class RoundDisplay(ttk.Frame):
     def __init__(self, parent):
@@ -115,6 +133,63 @@ class WindowNewTable(tk.Toplevel):
             self.message = messagebox.showerror(message=f"Request timeout, ensure server is on & running")
         finally:
             self.destroy()
+
+class WindowInsertAddress(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        key_list = []
+        for key in round_and_adds.keys():
+            key_list.append(key)
+
+        self.title = "Insert Address"
+        self.label_info = ttk.Label(self, text="""Please select a round and enter the address.
+        Example Address: 0/1 1 House St G11 3LA""")
+        self.label_info.grid(row=0, column=0)
+
+        self.label_street = ttk.Label(self, text="Street")
+        self.label_street.grid(row=1, column=1)
+
+        self.label_postcode = ttk.Label(self, text="Postcode")
+        self.label_postcode.grid(row=1, column=2)
+
+        self.n = tk.StringVar()
+        self.roundchosen = ttk.Combobox(self, width = 27, textvariable = self.n)
+        self.roundchosen['values'] = key_list
+        self.roundchosen['state'] = 'readonly'
+        self.roundchosen.grid(row=2, column=0)
+        self.roundchosen.current()
+        self.roundchosen.bind('<<ComboboxSelected>>', self.buttonEnable)
+
+        self.entry_street = ttk.Entry(self)
+        self.entry_street.grid(row=2, column=1)
+
+        self.entry_postcode = ttk.Entry(self)
+        self.entry_postcode.grid(row=2, column=2)
+
+        self.btn_entry = ttk.Button(self, text="Please select a round")
+        self.btn_entry.grid(row=3, column=0)
+    
+    def buttonEnable(self, event=None):
+        self.btn_entry.config(text="Insert Address", command=self.insert_address)
+    
+    def insert_address(self):
+        table = self.roundchosen.get()
+        street = self.entry_street.get()
+        postcode = self.entry_postcode.get()
+        if table and street and postcode:
+            try:
+                response = requests.post(f"{SERVER_URL}/insert_value", json={"table": table, 
+                                        "address": (street, postcode)})
+                
+                if response.status_code != 200:
+                    self.message = messagebox.showerror(message=f"Error code {response.status_code}, address not inserted")
+                else:
+                    self.message = messagebox.showinfo(message=response.text)
+            except (TimeoutError, ConnectTimeout):
+                self.message = messagebox.showerror(message=f"Request timeout, ensure server is on & running")
+            finally:
+                self.destroy()
 
 def main():
     app = Application()

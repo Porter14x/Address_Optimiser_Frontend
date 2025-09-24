@@ -117,8 +117,6 @@ def optimiseJobSheet():
         adds_post.insert(-1, {"q": END_ADDRESS.replace("\n", " ").strip(), "format": "json"})
 
         response_adds = requests.post(f"{SERVER_URL}/optimise", json={"addresses": adds_post}).json()
-        print(f"len(response_adds): {len(response_adds)}")
-        print(f"len(adds_and_notes): {len(adds_and_notes)}")
 
         opt_adds = []
         for add in response_adds:
@@ -129,6 +127,8 @@ def optimiseJobSheet():
             opt_adds.append(adds_and_notes[add["original_index"]])
         
         writeAddsToJobSheet(opt_adds, service)
+
+        return None
     
     except HttpError as error:
         print(f"An error occurred: {error}")
@@ -147,9 +147,7 @@ def writeAddsToJobSheet(opt_adds, service):
         for val in opt_adds:
             A_values.append([val["address"]])
             B_values.append([val["mid"]])
-            print(f"val[mid]: {val["mid"]}")
             C_values.append([val["notes"]])
-            print(f"val[notes]: {val["notes"]}")
         
         data = [
             {"range": f"Optimised!A{ADD_START}:A{ADD_START+len(opt_adds)-1}", "values": A_values},
