@@ -96,6 +96,32 @@ class MainTestCase(unittest.TestCase):
         mock_showerror.assert_called_once_with(message=mock_response.return_value.text)
 
         app.destroy()
+    
+    @patch("tkinter.messagebox.showinfo")
+    @patch("tkinter.messagebox.askyesno", return_value=True)
+    @patch("requests.post")
+    def test_delete_address_success(self, mock_response, mock_yesno, mock_showinfo):
+        app = m.Application()
+
+        wda = m.WindowDeleteAddress(app)
+        wda.roundchosen = MagicMock()
+        wda.addchosen = MagicMock()
+
+        wda.roundchosen.get.return_value = "A01"
+        wda.addchosen.get.return_value = ("1 House St", "A01 XXX")
+
+        output = (f"Deleted values ({wda.addchosen.get.return_value}) from "
+                  f"{wda.roundchosen.get.return_value}")
+
+        mock_response.return_value.status_code = 200
+        mock_response.return_value.text = output
+
+        wda.delete_address()
+
+        mock_yesno.assert_called_once()
+        mock_showinfo.assert_called_once_with(message=mock_response.return_value.text)
+
+        app.destroy()
 
     def tearDown(self):
         return super().tearDown()
