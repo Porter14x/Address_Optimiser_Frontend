@@ -1,0 +1,38 @@
+name: Build Binaries
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install pyinstaller -r requirements.txt
+      - run: pyinstaller --onefile main.py
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-exe
+          path: dist/main.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - run: pip install pyinstaller -r requirements.txt
+      - run: pyinstaller --onefile main.py
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macos-app
+          path: dist/*
