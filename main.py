@@ -49,9 +49,6 @@ class ButtonRow(ttk.Frame):
         self.btn_rollback = ttk.Button(self, text="Rollback Round")
         self.btn_rollback.grid(row=0, column=4)
 
-        self.btn_refresh = ttk.Button(self, text="Refresh", command=self.refresh)
-        self.btn_refresh.grid(row=0, column=5)
-
         self.btn_job_sheet = ttk.Button(self, text="Optimise Job Sheet", command=self.optimiseJobSheetButton)
         self.btn_job_sheet.grid(row=0, column=6)
 
@@ -77,19 +74,6 @@ class ButtonRow(ttk.Frame):
         else:
            self.label_load.config(text="Job Sheet Optimised")
            print(round_and_adds)
-    
-    def refresh(self):
-        try:
-            response = requests.post(f"{SERVER_URL}/refresh").json()
-            global round_and_adds
-            round_and_adds = response["all_data"]
-            key_list = []
-            for key in round_and_adds.keys():
-                key_list.append(key)
-            self.label_load.config(text="Refreshed")
-        except Exception as e:
-            print(e)
-
 
 class RoundDisplay(ttk.Frame):
     def __init__(self, parent):
@@ -114,9 +98,15 @@ class RoundDisplay(ttk.Frame):
         self.btn_fetch.grid(row=1, column=0, sticky="n")
     
     def fetch_rounds(self):
-        key_list = []
-        for key in round_and_adds.keys():
-            key_list.append(key)
+        try:
+            response = requests.post(f"{SERVER_URL}/refresh").json()
+            global round_and_adds
+            round_and_adds = response["all_data"]
+            key_list = []
+            for key in round_and_adds.keys():
+                key_list.append(key)
+        except Exception as e:
+            print(e)
         
         self.roundchosen.config(values=key_list, textvariable="")
         self.roundchosen.set("")
