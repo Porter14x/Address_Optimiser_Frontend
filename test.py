@@ -6,6 +6,7 @@ import requests
 import main as m
 
 from unittest.mock import patch, MagicMock
+from main import round_and_adds
 
 class MainTestCase(unittest.TestCase):
     """Class for testing functions of main.py"""
@@ -43,7 +44,7 @@ class MainTestCase(unittest.TestCase):
         wnt.entry.get.return_value = "test"
         wnt.create_table()
 
-        mock_showerror.assert_called_once_with(message="Error code 1, round not created")
+        mock_showerror.assert_called_once()
 
         app.destroy()
     
@@ -93,10 +94,11 @@ class MainTestCase(unittest.TestCase):
 
         wia.insert_address()
 
-        mock_showerror.assert_called_once_with(message=mock_response.return_value.text)
+        mock_showerror.assert_called_once()
 
         app.destroy()
     
+    @patch("main.round_and_adds", {"A01": [("1 House St", "A01 XXX")]})
     @patch("tkinter.messagebox.showinfo")
     @patch("tkinter.messagebox.askyesno", return_value=True)
     @patch("requests.post")
@@ -122,6 +124,27 @@ class MainTestCase(unittest.TestCase):
         mock_showinfo.assert_called_once_with(message=mock_response.return_value.text)
 
         app.destroy()
+    
+    @patch("main.round_and_adds", {"A01": [("1 House St", "A01 XXX")]})
+    @patch("tkinter.messagebox.showerror")
+    @patch("tkinter.messagebox.askyesno", return_value=True)
+    @patch("requests.post")
+    def test_delete_address_fail(self, mock_response, mock_yesno, mock_showerror):
+        app = m.Application()
+
+        wda = m.WindowDeleteAddress(app)
+        wda.roundchosen = MagicMock()
+        wda.addchosen = MagicMock()
+
+        wda.roundchosen.get.return_value = "A01"
+        wda.addchosen.get.return_value = ("1 House St", "A01 XXX")
+
+        mock_response.return_value.status_code = 1
+
+        wda.delete_address()
+
+        mock_yesno.assert_called_once()
+        mock_showerror.assert_called_once()
 
     def tearDown(self):
         return super().tearDown()

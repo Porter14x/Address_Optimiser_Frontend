@@ -43,16 +43,16 @@ class ButtonRow(ttk.Frame):
         self.btn_delete = ttk.Button(self, text="Remove Address", command=self.getWindowDeleteAddress)
         self.btn_delete.grid(row=0, column=2)
 
-        self.btn_drop_table = ttk.Button(self, text="Remove Round")
+        self.btn_drop_table = ttk.Button(self, text="Remove Round", command=self.getWindowRemoveTable)
         self.btn_drop_table.grid(row=0, column=3)
 
-        self.btn_rollback = ttk.Button(self, text="Rollback Round")
-        self.btn_rollback.grid(row=0, column=4)
+        #self.btn_rollback = ttk.Button(self, text="Rollback Round")
+        #self.btn_rollback.grid(row=0, column=4)
 
         self.btn_job_sheet = ttk.Button(self, text="Optimise Job Sheet", command=self.optimiseJobSheetButton)
         self.btn_job_sheet.grid(row=0, column=6)
 
-        self.label_load = ttk.Label(self, text="Test")
+        self.label_load = ttk.Label(self, text="")
         self.label_load.grid(row=1, column=3)
     
     def getWindowNewTable(self):
@@ -63,6 +63,9 @@ class ButtonRow(ttk.Frame):
     
     def getWindowDeleteAddress(self):
         delad_win = WindowDeleteAddress(self.class_parent)
+    
+    def getWindowRemoveTable(self):
+        rt_win = WindowRemoveTable(self.class_parent)
     
     def optimiseJobSheetButton(self):
         self.label_load.config(text="Optimising Job Sheet...")
@@ -140,7 +143,7 @@ class WindowNewTable(tk.Toplevel):
             response = requests.post(f"{SERVER_URL}/create_table", json={"table": table_name})
 
             if response.status_code != 200:
-                self.message = messagebox.showerror(message=f"Error code {response.status_code}, round not created")
+                self.message = messagebox.showerror(message=f"Error code {response.status_code}, {response.reason}")
             else:
                 self.message = messagebox.showinfo(message=response.text)
         except (TimeoutError, ConnectTimeout):
@@ -197,7 +200,7 @@ class WindowInsertAddress(tk.Toplevel):
                                         "address": (street, postcode)})
                 
                 if response.status_code != 200:
-                    self.message = messagebox.showerror(message=f"Error code {response.status_code}, address not inserted")
+                    self.message = messagebox.showerror(message=f"Error code {response.status_code}, {response.reason}")
                 else:
                     self.message = messagebox.showinfo(message=response.text)
             except (TimeoutError, ConnectTimeout):
@@ -265,7 +268,48 @@ class WindowDeleteAddress(tk.Toplevel):
                     response = requests.post(f"{SERVER_URL}/delete_value", json={"table": rd,
                                                 "address": round_and_adds[rd][self.ix_tracker]})
                     if response.status_code != 200:
-                        self.message = messagebox.showerror(message=f"Error code {response.status_code}, address not deleted")
+                        self.message = messagebox.showerror(message=f"Error code {response.status_code}, {response.reason}")
+                    else:
+                        self.message = messagebox.showinfo(message=response.text)
+                except (TimeoutError, ConnectTimeout):
+                    self.message = messagebox.showerror(message=f"Request timeout, ensure server is on & running")
+                finally:
+                    self.destroy()
+
+            self.destroy()
+
+class WindowRemoveTable(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        key_list = []
+        for key in round_and_adds.keys():
+            key_list.append(key)
+
+        self.label = ttk.Label(self, text="Please select a round to delete")
+        self.label.grid(row=0, column=0)
+
+        self.round = tk.StringVar()
+        self.roundchosen = ttk.Combobox(self, width = 27, textvariable = self.round)
+        self.roundchosen['values'] = key_list
+        self.roundchosen['state'] = 'readonly'
+        self.roundchosen.grid(row=1, column=0)
+        self.roundchosen.current()
+
+        self.btn_remove = ttk.Button(self, text="Enter", command=self.remove_round)
+        self.btn_remove.grid(row=1, column=1)
+    
+    def remove_round(self):
+        rd = self.roundchosen.get()
+        if rd:
+            outcome = messagebox.askyesno(title="Confirm Deletion",
+            message=f"Delete whole round {rd}?")
+
+            if outcome:
+                try:
+                    response = requests.post(f"{SERVER_URL}/delete_table", json={"table": rd})
+                    if response.status_code != 200:
+                        self.message = messagebox.showerror(message=f"Error code {response.status_code}, {response.reason}")
                     else:
                         self.message = messagebox.showinfo(message=response.text)
                 except (TimeoutError, ConnectTimeout):
