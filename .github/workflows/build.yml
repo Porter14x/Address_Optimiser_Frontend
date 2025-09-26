@@ -11,13 +11,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.x'
       - run: pip install pyinstaller -r requirements.txt
       - run: pyinstaller --onefile main.py
-      - uses: actions/upload-artifact@v3
+      - name: Upload Windows exe
+        uses: actions/upload-artifact@v4   # ← changed from v3 to v4
         with:
           name: windows-exe
           path: dist/main.exe
@@ -26,13 +27,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.x'
       - run: pip install pyinstaller -r requirements.txt
       - run: pyinstaller --onefile main.py
-      - uses: actions/upload-artifact@v3
+      - name: Upload macOS build
+        uses: actions/upload-artifact@v4   # also v4 here
         with:
-          name: macos-app
-          path: dist/*
+          name: macos-binary
+          path: dist/
