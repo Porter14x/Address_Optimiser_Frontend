@@ -2,16 +2,37 @@ import tkinter as tk
 import requests
 import dotenv
 import os
+import create_sheets
 import sheets
+import pathlib
+
 from tkinter import ttk, messagebox
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 from requests import ConnectTimeout
+from pathlib import Path
+
+env_file_path = Path(".env")
+env_file_path.touch(mode=0o600)
 
 load_dotenv()
 
-SERVER_URL = os.getenv("SERVER_URL")
+SERVER_URL = ""
 
 round_and_adds = {}
+
+def get_env():
+    #env_file_path = Path(".env")
+    #env_file_path.touch(mode=0o600)
+
+    with open(env_file_path, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+        if len(content) != 0:
+            return
+        
+    set_key(dotenv_path=env_file_path, key_to_set="SERVER_URL", value_to_set="")
+    set_key(dotenv_path=env_file_path, key_to_set="SHEET_CREATED", value_to_set="FALSE")
+    set_key(dotenv_path=env_file_path, key_to_set="START_ADDRESS", value_to_set="")
+    set_key(dotenv_path=env_file_path, key_to_set="END_ADDRESS", value_to_set="")
 
 class Application(tk.Tk):
     def __init__(self):
@@ -46,8 +67,8 @@ class ButtonRow(ttk.Frame):
         self.btn_drop_table = ttk.Button(self, text="Remove Round", command=self.getWindowRemoveTable)
         self.btn_drop_table.grid(row=0, column=3)
 
-        #self.btn_rollback = ttk.Button(self, text="Rollback Round")
-        #self.btn_rollback.grid(row=0, column=4)
+        self.btn_settings = ttk.Button(self, text="Settings", command=self.getWindowSTN)
+        self.btn_settings.grid(row=0, column=4)
 
         self.btn_job_sheet = ttk.Button(self, text="Optimise Job Sheet", command=self.optimiseJobSheetButton)
         self.btn_job_sheet.grid(row=0, column=6)
@@ -66,14 +87,21 @@ class ButtonRow(ttk.Frame):
     
     def getWindowRemoveTable(self):
         rt_win = WindowRemoveTable(self.class_parent)
+
+    def getWindowSTN(self):
+        s_win = WindowSTN(self.class_parent)
     
     def optimiseJobSheetButton(self):
         self.label_load.config(text="Optimising Job Sheet...")
         outcome = sheets.optimiseJobSheet()
         if outcome:
-           self.message = messagebox.showerror(message=f"""Error code {outcome.status_code}, 
+           if isinstance(outcome, str):
+               self.message = messagebox.showerror(message=outcome)
+               self.label_load.config(text=f"Error while optimising jobsheet")
+           else:
+              self.message = messagebox.showerror(message=f"""Error code {outcome.status_code}, 
                                                 sheet not optimised\n {outcome.reason}""")
-           self.label_load.config(text=f"Error while optimising jobsheet, {outcome.status_code}")
+              self.label_load.config(text=f"Error while optimising jobsheet, {outcome.status_code}")
         else:
            self.label_load.config(text="Job Sheet Optimised")
            print(round_and_adds)
@@ -286,6 +314,8 @@ class WindowRemoveTable(tk.Toplevel):
         for key in round_and_adds.keys():
             key_list.append(key)
 
+        self.title = "Remove Round"
+
         self.label = ttk.Label(self, text="Please select a round to delete")
         self.label.grid(row=0, column=0)
 
@@ -319,7 +349,53 @@ class WindowRemoveTable(tk.Toplevel):
 
             self.destroy()
 
+class WindowSTN(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.server = tk.StringVar(value=os.getenv("SERVER_URL"))
+        self.start_add = tk.StringVar(value=os.getenv("START_ADDRESS"))
+        self.end_add = tk.StringVar(value=os.getenv("END_ADDRESS"))
+
+        self.server_label = ttk.Label(self, text="Server URL")
+        self.server_label.grid(row=0, column=0)
+        self.start_add_label = ttk.Label(self, text="Start Address")
+        self.start_add_label.grid(row=1, column=0)
+        self.end_add_label = ttk.Label(self, text="End Address")
+        self.end_add_label.grid(row=2, column=0)
+
+        self.server_entry = ttk.Entry(self, textvariable=self.server)
+        self.server_entry.grid(row=0, column=1)
+        self.start_add_entry = ttk.Entry(self, textvariable=self.start_add)
+        self.start_add_entry.grid(row=1, column=1)
+        self.start_end_entry = ttk.Entry(self, textvariable=self.end_add)
+        self.start_end_entry.grid(row=2, column=1)
+
+        self.btn_save_changes = ttk.Button(self, text="Save Changes", command=self.save_changes)
+        self.btn_save_changes.grid(row=3, column=0)
+        self.btn_cancel = ttk.Button(self, text="Cancel", command=self.close)
+        self.btn_cancel.grid(row=3, column=1)
+    
+    def save_changes(self):
+        set_key(dotenv_path=env_file_path, key_to_set="SERVER_URL", value_to_set=self.server.get())
+        set_key(dotenv_path=env_file_path, key_to_set="START_ADDRESS", value_to_set=self.start_add.get())
+        set_key(dotenv_path=env_file_path, key_to_set="END_ADDRESS", value_to_set=self.end_add.get())
+
+        self.message = messagebox.showinfo(message="Changes Saved")
+
+        self.destroy()
+    
+    def close(self):
+        self.destroy()
+
 def main():
+    get_env()
+    SHEET_CREATED = os.getenv("SHEET_CREATED")
+    print(SHEET_CREATED)
+    if SHEET_CREATED != "TRUE":
+        create_sheets.main()
+        set_key(dotenv_path=env_file_path, key_to_set="SHEET_CREATED", value_to_set="TRUE")
+        
     app = Application()
     app.mainloop()
 

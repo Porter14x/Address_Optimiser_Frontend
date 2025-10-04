@@ -66,9 +66,16 @@ def optimiseJobSheet():
             .execute()
         )
 
+        print(result)
         adds = result["valueRanges"][0]["values"]
-        mid = result["valueRanges"][1]["values"]
         notes = result["valueRanges"][2]["values"]
+        #mid point can sometimes have nothing so won't have values index
+        if "values" not in result["valueRanges"][1]:
+            mid = []
+            for i in range(max(len(adds), len(notes))):
+                mid.append([])
+        else:
+            mid = result["valueRanges"][1]["values"]
 
         #sheets will omit leading empty cells, so making sure empty notes are still present
         longest_arr = max(len(adds), len(mid), len(notes))
@@ -117,6 +124,8 @@ def optimiseJobSheet():
         adds_post.insert(-1, {"q": END_ADDRESS.replace("\n", " ").strip(), "format": "json"})
 
         response_adds = requests.post(f"{SERVER_URL}/optimise", json={"addresses": adds_post}).json()
+        if isinstance(response_adds, str):
+            return response_adds
 
         opt_adds = []
         for add in response_adds:

@@ -9,12 +9,12 @@ from dotenv import set_key
 from sheets import authenticate
 
 env_file_path = Path(".env")
-env_file_path.touch(mode=0o600, exist_ok=False) #check env exists before creating
+env_file_path.touch(mode=0o600) #check env exists before creating
 
 sheet_id = ""
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
-def create(title):
+def create_job_sheet(title):
   """
   Creates the Sheet the user has access to.
   Load pre-authorized user credentials from the environment.
@@ -35,6 +35,7 @@ def create(title):
     print(f"Spreadsheet ID: {(spreadsheet.get('spreadsheetId'))}")
     global sheet_id
     sheet_id = spreadsheet.get("spreadsheetId")
+    set_key(dotenv_path=env_file_path, key_to_set="OPTIMISED_SHEET_ID", value_to_set=sheet_id)
   except HttpError as error:
     print(f"An error occurred: {error}")
     return error
@@ -74,11 +75,11 @@ def setJobSheet():
         for s in meta["sheets"]:
             if s["properties"]["title"] == "Plain_Values":
                 pv_id = s["properties"]["sheetId"]
-                set_key(dotenv_path=env_file_path, key_to_set="OPT_PV_ID", value_to_set=pv_id)
+                set_key(dotenv_path=env_file_path, key_to_set="OPT_PV_ID", value_to_set=str(pv_id))
                 continue
             elif s["properties"]["title"] == "Optimised":
                 op_id = s["properties"]["sheetId"]
-                set_key(dotenv_path=env_file_path, key_to_set="OPT_OP_ID", value_to_set=op_id)
+                set_key(dotenv_path=env_file_path, key_to_set="OPT_OP_ID", value_to_set=str(op_id))
                 continue
             #break case for when we have necessary ids if there are more sheets in future
             elif pv_id and op_id: 
@@ -215,6 +216,18 @@ def setJobSheet():
                 "range": "Plain_Values!C2",
                 "values": [["=ARRAYFORMULA('Sheet1'!D2:D)"]]
               },
+              {
+                "range": "Optimised!A1",
+                "values": [["=Sheet1!A1"]]
+              },
+              {
+                "range": "Optimised!A2",
+                "values": [["=Sheet1!B2"]]
+              },
+              {
+                "range": "Optimised!C2",
+                "values": [["=Sheet1!D2"]]
+              },
            ]
         }
 
@@ -227,7 +240,8 @@ def setJobSheet():
         print(f"An error occurred: {error}")
         return error
 
-def setSheetInsert():
+"""def setSheetInsert():
+
     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
     try:
         service = build("sheets", "v4", credentials=creds)
@@ -348,11 +362,14 @@ def setSheetInsert():
     except HttpError as error:
         print(f"An error occurred: {error}")
         return error
-    
-
-if __name__ == "__main__":
+"""
+        
+def main():
     authenticate()
-    create("Address Optimiser MASTER RUN SHEET")
+    create_job_sheet("Address Optimiser MASTER RUN SHEET")
     setJobSheet()
-    create("Address Optimiser Sheet Insert")
-    setSheetInsert()
+    #create("Address Optimiser Sheet Insert")
+    #setSheetInsert()
+    
+if __name__ == "__main__":
+    main()
