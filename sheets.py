@@ -123,17 +123,19 @@ def optimiseJobSheet():
         adds_post.insert(0, {"q": START_ADDRESS.replace("\n", " ").strip(), "format": "json"})
         adds_post.insert(-1, {"q": END_ADDRESS.replace("\n", " ").strip(), "format": "json"})
 
-        response_adds = requests.post(f"{SERVER_URL}/optimise", json={"addresses": adds_post}).json()
-        if isinstance(response_adds, str):
-            return response_adds
+        response = requests.post(f"{SERVER_URL}/optimise", json={"addresses": adds_post})
+        if "Issue" in response.text:
+            return response.text
 
+        response_adds = response.json()
         opt_adds = []
         for add in response_adds:
             if adds_and_notes[add["original_index"]]["address"] == START_ADDRESS:
                 continue
             elif adds_and_notes[add["original_index"]]["address"] == END_ADDRESS:
                 continue
-            opt_adds.append(adds_and_notes[add["original_index"]])
+            else:
+                opt_adds.append(adds_and_notes[add["original_index"]])
         
         writeAddsToJobSheet(opt_adds, service)
 

@@ -99,8 +99,8 @@ class ButtonRow(ttk.Frame):
                self.message = messagebox.showerror(message=outcome)
                self.label_load.config(text=f"Error while optimising jobsheet")
            else:
-              self.message = messagebox.showerror(message=f"""Error code {outcome.status_code}, 
-                                                sheet not optimised\n {outcome.reason}""")
+              self.message = messagebox.showerror(message=f"""Error code {outcome.status_code},
+              sheet not optimised\n {outcome.reason}""")
               self.label_load.config(text=f"Error while optimising jobsheet, {outcome.status_code}")
         else:
            self.label_load.config(text="Job Sheet Optimised")
